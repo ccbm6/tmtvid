@@ -8,8 +8,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Unzip project
-        run: unzip -q tmt-vidso.zip
+      - name: Find and unzip project
+        run: |
+          echo "Files in repo:"; find . -not -path "./.git/*" -type f | head -50
+          ZIP=$(find . -iname "*.zip" -not -path "./.git/*" | head -n 1)
+          if [ -z "$ZIP" ]; then echo "ERROR: no zip file found in the repo"; exit 1; fi
+          echo "Using: $ZIP"
+          mkdir proj && unzip -q "$ZIP" -d proj
+          SETTINGS=$(find proj -name settings.gradle.kts | head -n 1)
+          if [ -z "$SETTINGS" ]; then echo "ERROR: settings.gradle.kts not found in zip"; exit 1; fi
+          dirname "$SETTINGS" > projdir.txt
+          echo "Project dir: $(cat projdir.txt)"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -18,9 +27,8 @@ jobs:
         with:
           gradle-version: 8.9
       - name: Build
-        working-directory: tmt-vidso
-        run: gradle :app:assembleRelease --no-daemon
+        run: cd "$(cat projdir.txt)" && gradle :app:assembleRelease --no-daemon
       - uses: actions/upload-artifact@v4
         with:
           name: tmt-vidso-apk
-          path: tmt-vidso/app/build/outputs/apk/release/*.apk
+          path: proj/**/build/outputs/apk/release/*.apk
