@@ -32,3 +32,7 @@ jobs:
         with:
           name: tmt-vidso-apk
           path: proj/**/build/outputs/apk/release/*.apk
+      - name: Debug FFmpegKit package (only on failure)
+        if: failure()
+        run: |
+          for j in $(find ~/.gradle -name "classes.jar" -path "*ffmpeg*" 2>/dev/null); do echo "$j"; unzip -l "$j" | grep -i "FFmpegKit.class"; done
